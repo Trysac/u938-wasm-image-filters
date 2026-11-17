@@ -60,6 +60,44 @@ fn native_digests() -> BTreeMap<(String, String), String> {
     map
 }
 
+/// Collects `digest <filter> <image> <hex>` records from the wasm test runner's stdout.
+///
+/// Under `wasm32-wasip1` libtest runs single-threaded, so with `--nocapture` it prints
+/// `test print_digests ... ` without a newline before the test body runs. The first digest
+/// record is therefore glued to that prefix, so the record is taken as the last four tokens
+/// of a line whose fourth-from-last token is `digest`.
+fn parse_digest_lines(stdout: &str) -> BTreeMap<(String, String), String> {
+    let mut map = BTreeMap::new();
+    for line in stdout.lines() {
+        let parts: Vec<&str> = line.split_whitespace().collect();
+        if let [.., "digest", filter, image, hex] = parts.as_slice() {
+            map.insert(
+                ((*filter).to_string(), (*image).to_string()),
+                (*hex).to_string(),
+            );
+        }
+    }
+    map
+}
+
+#[test]
+fn parse_digest_lines_accepts_record_glued_to_libtest_prefix() {
+    let stdout = "running 1 test\n\
+                  test print_digests ... digest grayscale img0 0x00000000000000aa\n\
+                  digest grayscale img1 0x00000000000000bb\n\
+                  ok\n";
+    let map = parse_digest_lines(stdout);
+    assert_eq!(map.len(), 2);
+    assert_eq!(
+        map.get(&("grayscale".to_string(), "img0".to_string())),
+        Some(&"0x00000000000000aa".to_string())
+    );
+    assert_eq!(
+        map.get(&("grayscale".to_string(), "img1".to_string())),
+        Some(&"0x00000000000000bb".to_string())
+    );
+}
+
 fn has_wasmtime() -> bool {
     Command::new("wasmtime")
         .arg("--version")
@@ -103,17 +141,7 @@ fn wasm32_wasip1_digests_match_native_exactly() {
         "wasm32-wasip1 test failed:\nstdout:\n{stdout}\nstderr:\n{stderr}"
     );
 
-    let mut wasm_map = BTreeMap::new();
-    for line in stdout.lines() {
-        let parts: Vec<&str> = line.split_whitespace().collect();
-        if parts.len() == 4 && parts[0] == "digest" {
-            wasm_map.insert(
-                (parts[1].to_string(), parts[2].to_string()),
-                parts[3].to_string(),
-            );
-        }
-    }
-
+    let wasm_map = parse_digest_lines(&stdout);
     let expected = native_digests();
     assert_eq!(wasm_map.len(), 27, "expected 27 digest lines from wasm");
     assert_eq!(wasm_map, expected);
