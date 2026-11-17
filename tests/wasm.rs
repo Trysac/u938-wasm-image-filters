@@ -89,6 +89,10 @@ fn wasm32_wasip1_digests_match_native_exactly() {
         ])
         .env("CARGO_TARGET_WASM32_WASIP1_RUNNER", "wasmtime")
         .env("CARGO_TARGET_DIR", &target_dir)
+        .env_remove("RUSTFLAGS")
+        .env_remove("CARGO_ENCODED_RUSTFLAGS")
+        .env_remove("RUSTC_WRAPPER")
+        .env_remove("RUSTC_WORKSPACE_WRAPPER")
         .output()
         .expect("failed to invoke cargo test --target wasm32-wasip1");
 
