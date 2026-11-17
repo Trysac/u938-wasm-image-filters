@@ -1,0 +1,1 @@
+{"lang": "rust", "package": "trysac-wasm-image-filters", "commands": {"install": [["cargo", "fetch", "--locked"]], "check": [["cargo", "run", "--quiet", "--locked", "--manifest-path", "scripts/check/Cargo.toml"]]}}
