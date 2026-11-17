@@ -1,42 +1,29 @@
-# wasm-image-filters
+# trysac-wasm-image-filters
 
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![CI](https://github.com/Trysac/u938-wasm-image-filters/actions/workflows/ci.yml/badge.svg)](https://github.com/Trysac/u938-wasm-image-filters/actions/workflows/ci.yml)
+Integer-only RGBA image filters that give bit-identical results natively and in WebAssembly, with Gaussian blur, Sobel edges, sepia, contrast and a filter pipeline.
 
-Integer-only RGBA image filters that give bit-identical results natively and in WebAssembly, with Gaussian blur, Sobel edges, sepia, contrast and a filter pipeline
+## Why
 
-## Problem
-
-Describe in two or three sentences the concrete problem this utility solves, who hits it, and what
-they do today without it. Replace this paragraph when the first real feature lands.
-
-## Install
-
-```sh
-cargo add trysac-wasm-image-filters --git https://github.com/Trysac/u938-wasm-image-filters
-```
-
-Requires Rust 1.88 or newer. No dependencies outside the standard library.
+Web apps that filter images in the browser get different pixels from their server-side pipeline because floating-point filters round differently across engines and CPU/Wasm targets. `trysac-wasm-image-filters` (`wasm_image_filters`) uses pure integer arithmetic (`i32` accumulators and explicit rounding shifts/divisions) so every target produces the exact same bytes and FNV-1a 64-bit digest.
 
 ## Usage
 
 ```rust
-use wasm_image_filters::{Error, normalize};
+use wasm_image_filters::{Filter, Image, apply, parse_pipeline, pipeline};
 
-// normalize trims surrounding whitespace and lower-cases the text.
-assert_eq!(normalize("  Hello World ").as_deref(), Ok("hello world"));
+let img = Image::new(1, 1, vec![255, 0, 0, 255]).unwrap();
+let gray = apply(&img, &Filter::Grayscale);
+assert_eq!(gray.data(), &[54, 54, 54, 255]);
 
-// Blank input is rejected explicitly instead of returning an empty string.
-assert_eq!(wasm_image_filters::normalize("   "), Err(Error::Blank));
+let steps = parse_pipeline("grayscale,blur3,threshold:128").unwrap();
+let out = pipeline(&img, &steps);
+assert_eq!(out.digest(), 9_088_023_541_897_611_592_u64);
 ```
 
-## Documentation
+## CLI
 
-- [Architecture](docs/ARCHITECTURE.md) and [decisions](docs/decisions/)
-- [Testing](docs/TESTING.md) and [security](docs/SECURITY.md)
-- [Project record](docs/PROJECT.md) and [stack](docs/STACK.md)
-- [Changelog](CHANGELOG.md) and [contributing guide](CONTRIBUTING.md)
+Apply a filter pipeline to a binary PPM (`P6`, `maxval 255`) image:
 
-## License
-
-[MIT](LICENSE) (c) 2026 Miguel Gomez
+```text
+wasm-image-filters apply input.ppm --filters grayscale,blur3,sobel --out output.ppm
+```
