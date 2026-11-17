@@ -48,6 +48,7 @@ fn nine_filters() -> [(&'static str, Filter); 9] {
 
 #[test]
 fn print_digests() {
+    use std::io::Write;
     let images = seeded_images();
     let filters = nine_filters();
     for (f_name, filter) in &filters {
@@ -57,4 +58,5 @@ fn print_digests() {
             println!("digest {f_name} {i_name} 0x{digest:016x}");
         }
     }
+    let _ = std::io::stdout().flush();
 }
