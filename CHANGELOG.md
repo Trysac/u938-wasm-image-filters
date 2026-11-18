@@ -9,4 +9,5 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Added integer-only RGBA8 image filters (`Grayscale`, `Invert`, `Brightness`, `Contrast`, `Threshold`, `Sepia`, `GaussianBlur3`, `GaussianBlur5`, `BoxBlur`, `Sobel`), pipeline parser, binary PPM (`P6`) CLI, and `wasm32-wasip1` digest conformance tests.
 - Initial project structure from the factory utility template.
